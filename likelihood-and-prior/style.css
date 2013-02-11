@@ -1,0 +1,109 @@
+.domain, .tick {
+  opacity : 0.3;
+}
+
+svg line {
+  stroke : #000000;
+}
+
+svg text {
+  font-family : "Times";
+}
+
+.ivcont h2 {
+  font-family : Helvetica, Arial;
+  font-size : 25px;
+}
+
+.ivcont, .ivcont.userviscontrols {
+  display: inline-block;
+}
+
+.ivcont.userviscontrols {
+  vertical-align: top;
+  position : relative;
+  text-align : center;
+}
+
+.ivcont.userviscontrols p {
+  font-size : 19px;
+}
+
+.ivcont.userviscontrols {
+  font-size : 19px;
+}
+
+.ivcont h2 {
+  color : black;
+  text-align : center;
+  padding : 0px;
+}
+
+.viscontainer {
+  text-align : center;
+}
+
+svg path {
+  fill: none;
+  fill: #ddd;
+  stroke-width : 5;
+  opacity : 0.9;
+  fill-opacity : 0.3;
+}
+
+svg path.domain {
+  fill : none;
+  stroke-width : 1;
+  stroke: black;
+  opacity : 0.3;
+}
+
+svg path.likelihood, svg line.likelihood {
+  stroke : #666;
+}
+
+svg path.prior, svg line.prior {
+  stroke : #f60;
+}
+
+svg path.posterior, svg line.posterior {
+  stroke : #2c7bb6;
+}
+
+.ivcont h2 {
+  margin-top : 5px;
+  margin-bottom : 0px;
+}
+
+.ivcont p {
+  display : inline-block;
+  margin : 0px 10px 0px 10px;
+}
+
+.userviscontrols input {
+  font-size : 23px;
+  display : inline-block;
+  width : 70px;
+}
+
+.userviscontrols input.pton {
+  margin-left : 40px;
+}
+
+.userviscontrols .table {
+  margin-top : 5px;
+}
+
+.userviscontrols .button {
+  width : auto;
+  margin-left : 20px;
+  margin-top : 5px;
+}
+
+.userviscontrols .labsandpars, .userviscontrols .tabcont {
+  display : inline-block;
+}
+
+.userviscontrols p, svg {
+  margin-left : 10px;
+}

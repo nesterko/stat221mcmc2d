@@ -1,0 +1,86 @@
+/*! a common styles file for stat221
+    sergiy 20120926
+*/ 
+
+/*! page layout */
+
+body
+  margin : 0
+
+#content 
+  margin-left: auto
+  margin-right: auto
+  text-align: center
+  font-family: Garamond
+  //width: 800px
+
+#description 
+  text-align: left
+  font-size: 0.7em
+  width: 600px
+
+h1, h2, h3
+  font-family: Helvetica, Arial
+
+#footer
+  // Needed for Safari
+  position: relative  
+  padding: 20px
+  font-size: 0.8em
+  margin: auto
+  font-family: Helvetica, Arial
+  text-align: center
+
+.endcols
+  clear : both
+
+/* careful here, this affects the styling of all individual visualization 
+*  containers */
+.ivcont
+  display : inline-block
+  text-align : left
+
+/*! visualization container */
+.viscontainer
+  display : inline-block
+
+a, .viscontrols a
+  text-decoration: underline
+
+a:link, .viscontrols a:link
+  color: #000000
+
+a:visited, .viscontrols a:visited
+  color: #333333
+
+a:hover, .viscontrols a:hover
+  color: #00AA44
+  text-decoration: none
+
+a:active, .viscontrols a:active
+  color: #00AA44
+
+/*
+* declaration for table styles
+*/
+
+.table
+  display : table
+
+.trow
+  display : table-row
+
+.tcell
+  line-height : 1em !important
+  padding : 5px
+  text-align : center
+  display : table-cell
+
+.rtcell
+  @extends .tcell
+  text-align : right
+
+.ltcell
+  @extends .tcell
+  text-align : left
+

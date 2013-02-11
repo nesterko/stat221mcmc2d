@@ -1,0 +1,125 @@
+.domain, .tick {
+  opacity : 0.3;
+}
+
+svg line {
+  stroke : #000000;
+}
+
+svg text {
+  font-family : "Times";
+}
+
+.ivcont h2 {
+  font-family : Helvetica, Arial;
+  font-size : 25px;
+}
+
+.ivcont {
+  display: inline-block;
+}
+
+.userviscontrols {
+  margin-top : 40px;
+  vertical-align: top;
+}
+
+.userviscontrols p {
+  font-size : 19px;
+}
+
+.ivcont.userviscontrols {
+  font-size : 19px;
+}
+
+.ivcont h2 {
+  color : black;
+  text-align : center;
+  padding : 0px;
+}
+
+.viscontainer {
+  text-align : center;
+}
+
+.pdf {
+  fill: none;
+  stroke : #666;
+  stroke-width: 5;
+}
+
+svg path.contour {
+  fill: none;
+  stroke : #666;
+  stroke-width: 2;
+}
+
+.lead {
+  fill: none;
+  stroke : #f60;
+  stroke-width: 3;
+}
+
+svg rect.histogram {
+  fill: #2c7bb6;
+  stroke : #2c7bb6;
+  opacity : 0.7;
+}
+.currentValue {
+  fill : #f60;
+  stroke : #f60;
+  stroke-width : 1;
+}
+
+.ivcont h2 {
+  margin-top : 5px;
+  margin-bottom : 0px;
+}
+
+.ivcont .items p {
+  display : inline-block;
+  margin : 0px 10px 0px 10px;
+}
+
+.userviscontrols input {
+  font-size : 23px;
+  display : inline-block;
+  width : 70px;
+}
+
+.userviscontrols .pfield {
+  padding-right : 0px;
+  margin-left : 20px;
+  display : inline-block;
+}
+
+.pfield p {
+  margin-right : 10px;
+  display : inline-block;
+}
+
+.userviscontrols .button {
+  width : auto;
+  margin-left : 20px;
+  margin-top : 1em;
+}
+
+.curve0 {
+  stroke : #ff6600;
+}
+.curve1 {
+  stroke : #444444;
+}
+.curve2 {
+  stroke : #2c7bb6;
+}
+
+.positive {
+  stroke : #ff6600;
+  fill : #ff6600;
+}
+
+.negative {
+  stroke : #2c7bb6;
+  fill : #2c7bb6;
+}
