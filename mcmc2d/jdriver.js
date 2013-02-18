@@ -1,6 +1,7 @@
 // a sample d3 visualization for Stat 221
-// Strength of prior
-// sergiy 20120208
+// Metropolis Algorithm
+// Konstantin Kashin, reusing some of Sergyi's code
+// February 18, 2013
 
 
 (function() {
@@ -9,13 +10,17 @@
   // put in the custom style css for the visualization
   $('head').append('<link rel="stylesheet" href="' + 
     args.jspath + 'style.css">');
-        
+    
+// Begin visualization function         
   function visual ()
 {
-  // global variables for likelihood and prior means and variances
- // var xbar = 0, ss = 2, mu0 = 1, ss0 = 1;
-  // a global variable to tell the number of observations
- // var nn = 10;
+  // set global variables for target bivariate normal distribution
+  var targetMuX = 0, targetMuY = 0, targetSigmaX=1, targetSigmaY=1, targetRho = 0.5,
+  resolution = 250;
+
+  // set global variables for proposal bivariate distribution 
+  var proposalMuX = 0, proposalMuY = 0, proposalSigmaX=1, proposalSigmaY=1, proposalRho = 0,
+  resolution = 250;
 
   // compute the total dimensions of the plot as provided by the 
   // URI arguments (computeDims lives in the *utils.js file)
@@ -104,7 +109,7 @@ h = dims.h;
 
   function redraw ()
   {
-    //drawDen(den);
+    // draw contour plot (fxn defined below)
     drawAug(aug);
     return 0;
   }
@@ -112,185 +117,33 @@ h = dims.h;
   // generate data for the plots
   function generate ()
   {
-  /*  getRanges();
-    data.den = ['prior', 'likelihood', 'posterior'].map(function (nam)
-        {
-          var ran, res, fn;
-          if (nam == 'prior') {
-            ran = priRange; res = priResolution; fn = prior;
-          } else if (nam == 'likelihood') {
-            ran = likRange; res = likResolution; fn = likelihood;
-          } else if (nam == 'posterior') {
-            ran = postRange; res = postResolution; fn = posterior;
-          }
-          var dat = makeDensityData(ran, res, fn, false);
-          return { name : nam, data : dat};
-        });
-    //normalizeDensities();
-    window.data = data;
-    */
-    // calculate target density data
-    data.x = makeDensityData(xRange, xResolution, xDensity, true);
-    data.y = makeDensityData(yRange, yResolution, yDensity, true);
-    //data.aug = makeContourData(data.x, data.y, nLevels, cThreshold);
-	data.aug = makeBivarNormContourData(targetMuX,targetMuY,targetSigmaX,targetSigmaY,targetRho,resolution,nLevels,cThreshold)
-    // initialize Metropolis
+   // create data for bivariate normal contour plot
+  	data.aug = makeBivarNormContourData(targetMuX,targetMuY,targetSigmaX,targetSigmaY,targetRho,resolution,nLevels,cThreshold)
+    
+    // initialize Metropolis algorithm
     metropolisInit();
 
     return 0;
   }
 
- /* // variables for resolutions and ranges of the likelihood, prior, and 
-  // posterios
-  var likResolution = 250, priResolution = 250, postResolution = 250,
-      likRange, priRange, postRange;
 
-  function getRanges ()
-  {
-    var nsd = 3.5;
-    var lsd = ss / Math.sqrt(nn);
-    likRange = [xbar - nsd * lsd, xbar + nsd * lsd];
-    priRange = [mu0 - nsd * ss0, mu0 + nsd * ss0];
-    var pp = posteriorMeanSD();
-    postRange = [pp.mean - nsd * pp.sd, pp.mean + nsd * pp.sd];
-    return 0;
-  }
-  */
-  
-  /***** HELPER FXNS *********************************/
 
-  // nuts and bolts functions - simulations, HMC steps, contour plots etc
-  // numerics related constants
-  //var tobs = [-5, 5];
-  //var posRange = [-9, 9], posResolution = 250;
-  //var cauchyscale = 0.5;
-  //var momMean = 0, momSD = 1, momResolution = 250,
-  //    momRange = [momMean - 3 * momSD, momMean + 3 * momSD];
+  /*************************** HELPER FXNS *********************************/
+
   // Contour plot settings
   var nLevels = 12, cThreshold = 0.05;
 
-  var targetMuX = 0;
-  var targetMuY = 0;
-  var targetSigmaX=1;
-  var targetSigmaY=1;
-  var targetRho = 0.5;
-  var resolution = 250;
-  
-  var proposalMuX = 0;
-  var proposalMuY = 0;
-  var proposalSigmaX=1;
-  var proposalSigmaY=1;
-  var proposalRho = 0;
-  var resolution = 250;
-  
- 
-  // in the new simulation, we will have bivariate normal as target distribution
-  var xMean = 0;
-  var xSD = 2;
-  var xRange = [xMean-3*xSD, xMean+3*xSD]; // calculated as -6,6
-  var xResolution=250;
-  
-  var yMean = 0;
-  var ySD = 1;
-  var yRange = [yMean-3*ySD, yMean+3*ySD]; // calculated as -3,3
-  var yResolution = 250;
-  
-  
-  // replace these next 2 fxns with normal density below
-  function xDensity (x){
-  var pdf = jStat.normal.pdf;
-  return pdf(x, xMean, xSD);
-  }
-
-  function yDensity (y){
-  var pdf = jStat.normal.pdf;
-  return pdf(y, yMean, ySD);
-  }
-  
-  
-  // what if y was exponential?
-  xRate = 0.5;
-  xRangeExpo = [0,5];
-  
-  function xDensityExpo (x){
-  var pdf = jStat.exponential.pdf;
-  return pdf(x, xRate);
-  }
- 
-  
-  // what if y was beta?
-  xAlpha = 2;
-  xBeta = 2;
-  xRangeBeta = [0,1];
-  
-  function xDensityBeta (x){
-  var pdf = jStat.beta.pdf;
-  return pdf(x, xAlpha, xBeta);
-  }
-  
-  
-  // what if X was Cauchy?
-  xCauchyScale = 2;
-  xCauchyLocation = 0;
-  xRangeCauchy = [-8,8];
-  
-  function xDensityCauchy (x){
-  var pdf = jStat.cauchy.pdf;
-  return pdf(x,xCauchyLocation, xCauchyScale);
-  }
-  
-  // what if we had a bivariate normal?
-  var xMean = 0;
-  var xSD = 1;
-  var xRange = [xMean-3*xSD, xMean+3*xSD]; // calculated as -6,6
-  var xResolution=250;
-  
-  var yMean = 0;
-  var ySD = 1;
-  var yRange = [yMean-3*ySD, yMean+3*ySD]; // calculated as -3,3
-  var yResolution = 250;
-  
-  var rho = 0.5;
- 
- 
- 
-function makeContourData (xdat, ydat, nlev, thresh)
-  {
-    // calculate the values at the grid
-    var xx = xdat.xx, yy = ydat.xx;
-    var sur = jStat.seq(0, xx.length - 1, xx.length).map(function (jj) 
-        {
-          return jStat.seq(0, yy.length - 1, yy.length).map(function (ii)
-            {
-                return xdat.yy[jj] * ydat.yy[ii];
-            });
-        });
-    // tease out all available z values
-    var zz = [];
-    $M(sur).map(function (e) { zz.push(e); return 0;});
-    // determine the levels
-    var ra = range(zz), ad = (ra[1] - ra[0]) / (nlev - 1);
-    var levels = jStat.seq(0, nlev - 1, nlev).map(function (ii)
-        {return ra[0] + ad * ii; });
-
-    // use Jason Davies' implementation of the contour plot
-    var c = new Conrec();
-    var co = c.contour(sur, 0, xx.length - 1, 0, yy.length - 1,
-        xx, yy, levels.length, levels);
-
-    return {xx : xdat.xx, yy : ydat.xx, points : c.contourList()};
-  }
-  
- 
- 	function bivariateNormal(x,y,muX,muY,sigmaX,sigmaY,rho){
+  // Define density of bivariate normal distribution
+  function bivariateNormal(x,y,muX,muY,sigmaX,sigmaY,rho){
  		var det = Math.pow(sigmaX,2)*Math.pow(sigmaY,2)-Math.pow(rho,2)*Math.pow(sigmaX,2)*Math.pow(sigmaY,2);
  		var epower = -1/2*1/(1-Math.pow(rho,2))*(Math.pow((x-muX),2)/Math.pow(sigmaX,2) - 2*rho*(x-muX)*(y-muY)/(sigmaX*sigmaY)+Math.pow((y-muY),2)/Math.pow(sigmaY,2));
  		return 1/(2*Math.PI)*Math.pow(det,-1/2)*Math.exp(epower);
  	}
  
-
-function makeBivarNormContourData (muX,muY,sigmaX,sigmaY,rho,resolution,nlev, thresh)
-  {  	
+  // This is a function to make a contour plot of a bivariate normal
+  // Note that the actual densities are calculated within the fxn
+  function makeBivarNormContourData (muX,muY,sigmaX,sigmaY,rho,resolution,nlev, thresh)
+   {  	
   	// calculate ranges 
   	var xRange = [muX-3*sigmaX, muX+3*sigmaX];
   	var yRange = [muY-3*sigmaY, muY+3*sigmaY];
@@ -324,34 +177,37 @@ function makeBivarNormContourData (muX,muY,sigmaX,sigmaY,rho,resolution,nlev, th
     return {xx : xx, yy : yy, points : c.contourList()};
   }
   
- 
-function makeBivarDensityData (ran, resolution, densityFn, normalize)
-  {
-  	// initialize empty object
-    var tmp = Object();
-    // create xx and yy arrays (which give support of density)
-    tmp.xx = jStat.seq(ran[0], ran[1], resolution); // create array of 250 values within range of RV
-    tmp.yy = jStat.seq(ran[0], ran[1], resolution); // create array of 250 values within range of RV
 
-	// how to pass on two commands here!
-    tmp.zz = tmp.xx.map(function (e)
-        { return densityFn(e); });
-        
-    // max and min density
-    var maxdensity = d3.max(tmp.zz);
-    var mindensity = d3.min(tmp.zz);
-    // normalize so that max density = 1
-    if (normalize) {
-      tmp.yy = tmp.yy.map(function (e) { return e / maxdensity; });
-    }
-    tmp.maxdensity = maxdensity;
-    tmp.mindensity = mindensity;
-    tmp.points = makePoints(tmp.xx, tmp.yy);
-    return tmp;
+   // This is a function to make a contour plot from two univariate distributions
+   function makeContourData (xdat, ydat, nlev, thresh)
+  {
+    // calculate the values at the grid
+    var xx = xdat.xx, yy = ydat.xx;
+    var sur = jStat.seq(0, xx.length - 1, xx.length).map(function (jj) 
+        {
+          return jStat.seq(0, yy.length - 1, yy.length).map(function (ii)
+            {
+                return xdat.yy[jj] * ydat.yy[ii];
+            });
+        });
+    // tease out all available z values
+    var zz = [];
+    $M(sur).map(function (e) { zz.push(e); return 0;});
+    // determine the levels
+    var ra = range(zz), ad = (ra[1] - ra[0]) / (nlev - 1);
+    var levels = jStat.seq(0, nlev - 1, nlev).map(function (ii)
+        {return ra[0] + ad * ii; });
+
+    // use Jason Davies' implementation of the contour plot
+    var c = new Conrec();
+    var co = c.contour(sur, 0, xx.length - 1, 0, yy.length - 1,
+        xx, yy, levels.length, levels);
+
+    return {xx : xdat.xx, yy : ydat.xx, points : c.contourList()};
   }
   
-  	
- 	
+
+  // Function to create array of pair objects (some point in support of density and then the density at that point)
   function makeDensityData (ran, resolution, densityFn, normalize)
   {
     var tmp = Object();
@@ -362,7 +218,7 @@ function makeBivarDensityData (ran, resolution, densityFn, normalize)
     // max and min densities
     var maxdensity = d3.max(tmp.yy);
     var mindensity = d3.min(tmp.yy);
-    // make maxdensity = 1
+    // rescale make maxdensity = 1
     if (normalize) {
       tmp.yy = tmp.yy.map(function (e) { return e / maxdensity; });
     }
@@ -394,10 +250,22 @@ function makeBivarDensityData (ran, resolution, densityFn, normalize)
     var fun = jStat.normal.pdf;
     return fun(x, mu, ss);
   }
+
+  // function to create array of pair objects (points) from two arrays
+  function makePoints (xx, yy)
+  {
+    return jStat.seq(0, xx.length - 1, xx.length).map (function (ii)
+        {
+          return { x : xx[ii], y : yy[ii] };
+        });
+  }
+  function range (ar) { return [d3.min(ar), d3.max(ar)]; }
   
-  //******** NEW **********//
-  // Metropolis portion of the code
+  /*************************** METROPOLIS ALGORITHM *********************************/
+
   var nsteps = 7, stepsize = 0.3;
+  
+  // function to initialize Metropolis algorithm
   function metropolisInit ()
   {
     data.metropolis = Object();
@@ -412,46 +280,18 @@ function makeBivarDensityData (ran, resolution, densityFn, normalize)
     return 0;
   }
   
-  //******** END NEW **********//
-  function posteriorMeanSD ()
-  {
-    var tt = ss * ss / nn, sq = ss0 * ss0;
-    return { mean : (tt * mu0 + sq * xbar) / (tt + sq), 
-      sd : Math.sqrt(Math.pow(Math.pow(tt, -1) + Math.pow(sq, -1), -1))
-    }
-  }
-  function likelihood (par) { return normal(par, xbar, ss / Math.sqrt(nn)); }
-  function prior (par) { return normal(par, mu0, ss0); }
-  function posterior (par) 
-  {
-    var pp = posteriorMeanSD();
-    return normal(par, pp.mean, pp.sd);
-  }
-  // function to create array of pair objects (points)
-  function makePoints (xx, yy)
-  {
-    return jStat.seq(0, xx.length - 1, xx.length).map (function (ii)
-        {
-          return { x : xx[ii], y : yy[ii] };
-        });
-  }
-  function range (ar) { return [d3.min(ar), d3.max(ar)]; }
+ 
 
-
-
-/********************INITIALIZE PLOT******************/
+/******************** INITIALIZE DATA OBJECT ******************/
   // generate/initialize the data object
   var data = Object();
   generate();
 
-  // initialize our plots and data object
-  //var den = init(args.c, wv, h, "Functions", 'parameter', 
-  //    "function value", data);  
-  // new
-  var aug = init(args.c,wv,h, "Bivariate Normal", "X", "Y", data)
+  // initialize data object & all data for plots
+  var aug = init(args.c,wv,h, "Metropolis Sampling from Bivariate Normal", "X", "Y", data)
 
   
-/******************LEGEND *********************/
+/********************** DEFINE LEGEND ***********************/
 
 
   // a function to add the legend
@@ -462,56 +302,64 @@ function makeBivarDensityData (ran, resolution, densityFn, normalize)
      .attr('class', "ivcont userviscontrols");
     // set the width of the container
     // add all fields, text inputs and the button
-    var data = [
-    {cls : 'prior', name : 'Prior'},
-    {cls : 'likelihood', name : 'Likelihood'},
-    {cls : 'posterior', name : 'Posterior'}
-    ],
-      databut = [
+    
+    // Define what name of button is and the fxn it calls when pressed
+    var databut = [
       {name : "Refresh", fn : getPars}
     ];
+    
+    // Define input data for target distribution (this will be different input blanks) 
     var inputdataTarget = [
     {lab : '\\\\( \\mu_X \\\\)', cls : 'targetMuX', val : targetMuX},
     {lab : '\\\\( \\mu_Y \\\\)', cls : 'targetMuY', val : targetMuY},
     {lab : '\\\\( \\sigma_X \\\\)', cls : 'targetSigmaX', val : targetSigmaX},
     {lab : '\\\\( \\sigma_Y \\\\)', cls : 'targetSigmaY', val : targetSigmaY},
     {lab : '\\\\( \\rho \\\\)', cls : 'targetRho', val : targetRho}];
+    
+    // Define input data for proposal distribution (this will be different input blanks) 
     var inputdataProposal = [
     {lab : '\\\\( \\mu_X \\\\)', cls : 'proposalMuX', val : proposalMuX},
     {lab : '\\\\( \\mu_Y \\\\)', cls : 'proposalMuY', val : proposalMuY},
     {lab : '\\\\( \\sigma_X \\\\)', cls : 'proposalSigmaX', val : proposalSigmaX},
     {lab : '\\\\( \\sigma_Y \\\\)', cls : 'proposalSigmaY', val : proposalSigmaY},
     {lab : '\\\\( \\rho \\\\)', cls : 'proposalRho', val : proposalRho}];
-     var tdist = leg.append('div').attr('class','targetdist');
+    
+    // Append div for target distribution and populate
+    var tdist = leg.append('div').attr('class','targetdist');
     tdist.append('h3').html('Target Distribution');
     var inpTarget = tdist.selectAll(".labsandpars").data(inputdataTarget)
       .enter().append('div').attr('class', 'labsandpars');
+    // this creates the labels for the input boxes
     inpTarget.insert('p').html(function (d) {return d.lab; });
+    // This create the input boxes
     inpTarget.append('input').attr('class', function (d) { return 'pars ' + d.cls})
       .attr('type', 'number')
       .attr('value', function (d) {return d.val;})
       .attr('step', function (d) {
       if(d.cls=="targetRho"){
-      return 0.1;
+      return 0.1; // steps of 0.1 for rho parameter
       }
-      else{return 1;}
+      else{return 1;} // otherwise steps of 1
       })
       .attr('min', function (d) {
       if(d.cls=="targetRho"|d.cls=="targetSigmaX"|d.cls=="targetSigmaY"){
-      return 0;
+      return 0; // minimum value of 0 for rho and SDs
       }
       })
       .attr('max', function (d) {
       if(d.cls=="targetRho"){
-      return 1;
+      return 1; // max value of 1 for rho
       }
       });
     
+    // Append div for proposal distribution and populate
     var pdist = leg.append('div').attr('class','propdist');
     pdist.append('h3').html('Proposal Distribution');
     var inpProposal = pdist.selectAll(".labsandpars").data(inputdataProposal)
       .enter().append('div').attr('class', 'labsandpars');
+    // this creates the labels for the input boxes
     inpProposal.insert('p').html(function (d) {return d.lab; });
+    // this creates the input boxes
     inpProposal.append('input').attr('class', function (d) { return 'pars ' + d.cls})
       .attr('type', 'number')
       .attr('format', function (d, i) 
@@ -533,8 +381,7 @@ function makeBivarDensityData (ran, resolution, densityFn, normalize)
       return 1;
       }
       });
-    
-    
+    // This creates button
     //var buttonsandmore = leg.append('div').attr('class', 'buttons');
     var buttons = leg
       .selectAll(".button").data(databut);
@@ -566,13 +413,19 @@ function makeBivarDensityData (ran, resolution, densityFn, normalize)
   // Define fxn that runs when hit "Refresh"
   function getPars ()
   {
+  // extract values of all input forms of class "pars"
   var boxes = d3.selectAll("#" + args.c + " .pars");
   var vals = boxes[0].map(
       function (el) {return +d3.select(el).property("value");});
+  // update global values of parameters with new user-specified values
   targetMuX = vals[0]; targetMuY = vals[1]; targetSigmaX = Math.abs(vals[2]);
   targetSigmaY = Math.abs(vals[3]); targetRho = vals[4];
-  //getRanges();
+
+  // Note: need to do same here for proposal distribution (positions 5-9 of vals)!!!
+
+  // regenerate data
   generate();
+  // redraw svg
   redraw();
   return 0;
   }
@@ -592,66 +445,12 @@ function makeBivarDensityData (ran, resolution, densityFn, normalize)
         { return bound(mm, ax); });
   }
 
-/*****************OLD DRAWING FXN **********************/
-/*
-  // drawing function
-  function drawDen (obj)
-  {
-    // set the axis domains right
-    obj.y.domain(getBounds('yy'));
-    obj.x.domain(getBounds('xx'));
 
-    // draw the density lines
-    var lines = obj.plot.selectAll("path")
-      .data(obj.data.den);
 
-    var line = d3.svg.line()
-      .x(function(d, i) { return obj.x(d.x); })
-      .y(function(d, i) { return obj.y(d.y); });
-
-    lines.enter().append("path")
-      .attr("class", function (d) { return d.name; })
-      .attr("d", function (d) { return line(d.data.points); });
-
-    // now mark the means of the densities
-    var pp = posteriorMeanSD();
-    var means = [mu0, xbar, pp.mean];
-    var names = ['prior', 'likelihood', 'posterior'];
-
-    var lin = obj.plot.selectAll("line")
-      .data(means);
-      
-    var minval = obj.y.domain()[0];
-    lin.enter().append("line")
-      .attr("class", function (d, i) {return names[i]; })
-      .attr("x1", function (d, i) { return obj.x(d); })
-      .attr("x2", function (d, i) { return obj.x(d); })
-      .attr("y1", function (d, i) 
-          { return obj.y(minval); })
-      .attr("y2", function (d, i)
-          { return obj.y(obj.data.den[i].data.maxdensity); });
-
-    var tr = obj.svg.transition().duration(500);
-
-    tr.select(".y.axis").call(obj.yAxis);
-    tr.select(".x.axis").call(obj.xAxis);
-
-    var tr1 = obj.plot.transition().duration(500);
-    tr1.selectAll("path").attr('d', function (d)
-        { return line(d.data.points) } );
-    tr1.selectAll("line")
-      .attr("x1", function (d, i) { return obj.x(d); })
-      .attr("x2", function (d, i) { return obj.x(d); })
-      .attr("y2", function (d, i)
-          { return obj.y(obj.data.den[i].data.maxdensity); });
-
-    return 0;
-  }
-  */
-  /***** NEW DRAWING FXN *********************************/
+  /************************** DRAWING FXNS *********************************/
   
   
-  // augmented space draw function
+  // This function draws the contour plot + axes
   function drawAug (obj)
   {
     // set the axis right
@@ -666,12 +465,14 @@ function makeBivarDensityData (ran, resolution, densityFn, normalize)
 	// obj.data.aug.points is array where element is an array corresponding to each contour line
     var lines = obj.plot.selectAll("path.contour")
       .data(obj.data.aug.points);
-
+     
+    // This draws the path for the contour plot
+    // Note that input is line, which array with each element corresponding to a curve on the contour plot
     lines.enter().append("path")
       .attr("class", "contour")
       .attr("d", line);
 
-    // draw the point
+    // draw the point at which the Metropolis algorithm is at
     var poi = {x : obj.data.metropolis.x.val, y : obj.data.metropolis.y.val};
 
     var point = obj.plot.selectAll("circle")
@@ -694,22 +495,22 @@ function makeBivarDensityData (ran, resolution, densityFn, normalize)
       .attr("class", "lead")
       .attr("d", line);
 
-    // handle the transitions
+    // handle the transitions (this is necessary to reset plot when hit "Refresh")
     var tr = obj.svg.transition().duration(500);
+    // rescale axes
     tr.select(".y.axis").call(obj.yAxis);
     tr.select(".x.axis").call(obj.xAxis);
+    // Redraw current point in Metropolis algorithm + path leading to it
     tr.select("circle").attrTween("cx", pointTweenX1)
       .attrTween("cy", pointTweenY1);
     tr.select("path.lead").delay(500).attr('d', line);
-    
+    // Redraw contour plot
     tr.selectAll("path.contour").attr('d', function (d)
        { return line(d) } );
-   
     lead.exit().remove();
 
     return 0;
   }
-  
   
     function moveAlongPoints (ref, axis, field)
   {
@@ -800,23 +601,25 @@ function makeBivarDensityData (ran, resolution, densityFn, normalize)
     return moveAlongPoints(ref, axis, 'y');
   }
   
-  
   // end of new drawing fxn
 
+
+ /*************************** INITIALIZE PLOT ******************************/
   legend();
   redraw();
-
   getPars();
+  
+  
   // register an event listener for pressing the Enter key when editing numbers
   d3.selectAll("#" + args.c + " .pars").on("keyup", function ()
       {
       if (d3.event.keyCode == 13) getPars();
     });
 
-
-
   return 0;
-}
+} // end of visual() fxn
+
+// call visual function
 visual()
 //addScriptToHead(args.jspath+"conrec.js",visual);
 
