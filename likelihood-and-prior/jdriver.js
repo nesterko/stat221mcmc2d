@@ -351,8 +351,8 @@ h = dims.h;
     tr.select(".x.axis").call(obj.xAxis);
 
     var tr1 = obj.plot.transition().duration(500);
-    tr1.selectAll("path").attr('d', function (d)
-        { return line(d.data.points) } );
+    //tr1.selectAll("path").attr('d', function (d)
+     //   { return line(d.data.points) } );
     tr1.selectAll("line")
       .attr("x1", function (d, i) { return obj.x(d); })
       .attr("x2", function (d, i) { return obj.x(d); })

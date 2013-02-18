@@ -11,7 +11,7 @@ svg text {
 }
 
 .ivcont h2 {
-  font-family : Helvetica, Arial;
+  font-family : Garamond;
   font-size : 25px;
 }
 
@@ -81,7 +81,7 @@ svg path.posterior, svg line.posterior {
 }
 
 .userviscontrols input {
-  font-size : 23px;
+  font-size : 20px;
   display : inline-block;
   width : 70px;
 }
@@ -106,4 +106,40 @@ svg path.posterior, svg line.posterior {
 
 .userviscontrols p, svg {
   margin-left : 10px;
+}
+
+
+svg path.contour {
+  fill: none;
+  stroke : #666;
+  stroke-width: 2;
+}
+
+.lead {
+  fill: none;
+  stroke : #f60;
+  stroke-width: 3;
+}
+
+svg rect.histogram {
+  fill: #2c7bb6;
+  stroke : #2c7bb6;
+  opacity : 0.7;
+}
+.currentValue {
+  fill : #f60;
+  stroke : #f60;
+  stroke-width : 1;
+}
+
+.propdist, .targetdist {
+margin: 15px 0px;
+}
+
+.propdist h3, .targetdist h3 {
+color:black;
+font-size: 18px;
+margin: 0px;
+padding:0px;
+font-family : Garamond;
 }
