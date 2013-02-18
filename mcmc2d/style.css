@@ -143,3 +143,8 @@ margin: 0px;
 padding:0px;
 font-family : Garamond;
 }
+
+circle.prev {
+fill:blue;
+opacity:0.1;
+}

@@ -26,8 +26,7 @@
   // URI arguments (computeDims lives in the *utils.js file)
   var dims = computeDims(args.c, args.w, args.h);
 
-  var w = dims.w,
-h = dims.h;
+  var w = dims.w, h = dims.h;
 
 // define plot margins for the plots (same for all plots)
   var m = {t : 10, r : 20, b : 40, l : 60};
@@ -110,7 +109,7 @@ h = dims.h;
   function redraw ()
   {
     // draw contour plot (fxn defined below)
-    drawAug(aug);
+    drawContour(contour);
     return 0;
   }
 
@@ -118,7 +117,7 @@ h = dims.h;
   function generate ()
   {
    // create data for bivariate normal contour plot
-  	data.aug = makeBivarNormContourData(targetMuX,targetMuY,targetSigmaX,targetSigmaY,targetRho,resolution,nLevels,cThreshold)
+  	data.contour = makeBivarNormContourData(targetMuX,targetMuY,targetSigmaX,targetSigmaY,targetRho,resolution,nLevels,cThreshold)
     
     // initialize Metropolis algorithm
     metropolisInit();
@@ -262,8 +261,6 @@ h = dims.h;
   function range (ar) { return [d3.min(ar), d3.max(ar)]; }
   
   /*************************** METROPOLIS ALGORITHM *********************************/
-
-  var nsteps = 7, stepsize = 0.3;
   
   // function to initialize Metropolis algorithm
   function metropolisInit ()
@@ -271,15 +268,89 @@ h = dims.h;
     data.metropolis = Object();
     data.metropolis.x = Object();
     data.metropolis.y = Object();
-    data.metropolis.x.val = data.metropolis.y.val = 0;
-    data.metropolis.steps = [ {x : 0, y : 0} ];
+	// define initial values
+    data.metropolis.x.val = targetMuX;
+    data.metropolis.y.val = targetMuY;
+    // define arrays that will store all values
     data.metropolis.x.vals = [];
     data.metropolis.y.vals = [];
-    data.metropolis.currentStep = -1;
+    // define array that will store if proposal was accepted at each iteration
+    data.metropolis.accepted = [];
     data.metropolis.currentIteration = 0;
+
+	// set acceptance rate in legend equal to blank (useful for when "refresh" plot)    
+    var acceptRate = d3.selectAll(".acceptRate");
+	acceptRate.html("Acceptance Rate of Proposals: - %");;
+		
     return 0;
   }
   
+ // define function to do next iteration
+ function metropolisNextIteration(){
+  	metropolisJump();
+ 	redraw();
+ }
+ // define function to do next 100 iterations
+ function metropolis100Iterations(){
+  	for (var ii=0; ii<100; ii++) metropolisJump();
+ 	redraw();
+ }
+ // define function to do next 1000 iterations
+ function metropolis1000Iterations(){
+ 	for (var ii=0; ii<1000; ii++) metropolisJump();
+ 	redraw();
+ } 
+ 
+ // define function to reset sampling
+ function metropolisReset () {metropolisInit(); redraw;}
+ 
+ // define function to do acceptance/rejection jump
+ function metropolisJump()
+ {
+ 	// define current position (this is X_t,Y_t)
+ 	var currentX  = data.metropolis.x.val; 
+ 	var currentY =  data.metropolis.y.val;
+ 	
+ 	// proposal step: sample candidate X,Y from proposal distribution
+ 	// proposal distribution here is bivariate normal with variance and rho parameters
+ 	// defined by the user
+ 	var xRaw = jStat.normal.sample(0,1);
+ 	var xProposal = proposalSigmaX*xRaw + currentX; 
+ 	var yRaw = jStat.normal.sample(0,1);
+ 	var yProposal = proposalSigmaY*(proposalRho*xRaw +Math.sqrt(1-Math.pow(proposalRho,2))*yRaw) + currentY
+ 	
+ 	
+ 	// calculate probability of acceptance as ratio of densities evaluated at proposal to original point
+ 	var densOrig = bivariateNormal(currentX,currentY,targetMuX,targetMuY,targetSigmaX,targetSigmaY,proposalRho);
+ 	var densProposal = bivariateNormal(xProposal,yProposal,targetMuX,targetMuY,targetSigmaX,targetSigmaY,proposalRho);
+ 	
+ 	var probAccept = densProposal/densOrig;
+ 	
+ 	// bound acceptance probability at a max of 1
+ 	var probAcceptBounded = Math.min(densProposal,densOrig)
+ 
+ 	// select next step (accept or reject proposal)
+ 	unifIter = jStat.uniform.sample(0,1);
+ 	// Accept with probability of probAcceptBounded
+ 	if(unifIter < probAcceptBounded){
+ 		data.metropolis.accepted.push(true);
+ 		data.metropolis.x.val = xProposal;
+ 		data.metropolis.y.val = yProposal;
+ 		data.metropolis.x.vals.push(xProposal);
+ 		data.metropolis.y.vals.push(yProposal); 
+ 	} else{
+ 	// reject proposal
+ 	data.metropolis.accepted.push(false);
+ 	data.metropolis.x.val = currentX;
+ 	data.metropolis.y.val = currentY;
+ 	data.metropolis.x.vals.push(currentX);
+ 	data.metropolis.y.vals.push(currentY); 
+ 	}
+ 	data.metropolis.currentIteration++;
+  } // end of metropolisJump function
+
+ 
+ 
  
 
 /******************** INITIALIZE DATA OBJECT ******************/
@@ -288,7 +359,7 @@ h = dims.h;
   generate();
 
   // initialize data object & all data for plots
-  var aug = init(args.c,wv,h, "Metropolis Sampling from Bivariate Normal", "X", "Y", data)
+  var contour = init(args.c,wv,h, "Metropolis Sampling from Bivariate Normal", "X", "Y", data)
 
   
 /********************** DEFINE LEGEND ***********************/
@@ -303,11 +374,28 @@ h = dims.h;
     // set the width of the container
     // add all fields, text inputs and the button
     
-    // Define what name of button is and the fxn it calls when pressed
-    var databut = [
-      {name : "Refresh", fn : getPars}
+    // Create field to display acceptance rate of proposals in legend
+    var acceptRate = leg.append('p').attr('class','acceptRate');
+	acceptRate.html("Acceptance Rate of Proposals: - %");
+	    
+    // Create buttons to control iterations of Metropolis algorithm
+ 	// Define what name of button is and the fxn it calls when pressed
+    var dataIterBut = [
+      {name : "Next Iteration", fn : metropolisNextIteration},
+      {name : "100 Iterations", fn : metropolis100Iterations},
+      {name : "1000 Iterations", fn : metropolis1000Iterations}
+      //{name : "Refresh", fn : metropolisReset}
     ];
-    
+    var iterControls = leg.append('div').attr('class','iterControls');
+    // Create buttons
+    var iterButtons = iterControls
+      .selectAll(".button").data(dataIterBut);
+    iterButtons.enter().append("input")
+      .attr("type", "submit").attr("class", "button")
+      .attr("value", function (d) { return d.name; })
+      .on("click", function (d) { return d.fn(); });
+      
+    // Create fields to input parameters for target and proposal distributions
     // Define input data for target distribution (this will be different input blanks) 
     var inputdataTarget = [
     {lab : '\\\\( \\mu_X \\\\)', cls : 'targetMuX', val : targetMuX},
@@ -318,8 +406,8 @@ h = dims.h;
     
     // Define input data for proposal distribution (this will be different input blanks) 
     var inputdataProposal = [
-    {lab : '\\\\( \\mu_X \\\\)', cls : 'proposalMuX', val : proposalMuX},
-    {lab : '\\\\( \\mu_Y \\\\)', cls : 'proposalMuY', val : proposalMuY},
+    //{lab : '\\\\( \\mu_X \\\\)', cls : 'proposalMuX', val : proposalMuX},
+    //{lab : '\\\\( \\mu_Y \\\\)', cls : 'proposalMuY', val : proposalMuY},
     {lab : '\\\\( \\sigma_X \\\\)', cls : 'proposalSigmaX', val : proposalSigmaX},
     {lab : '\\\\( \\sigma_Y \\\\)', cls : 'proposalSigmaY', val : proposalSigmaY},
     {lab : '\\\\( \\rho \\\\)', cls : 'proposalRho', val : proposalRho}];
@@ -381,12 +469,19 @@ h = dims.h;
       return 1;
       }
       });
+      
+    // Create button to refresh / reset plot
+    // Define what name of button is and the fxn it calls when pressed
+    var databut = [
+      {name : "Refresh", fn : getPars}
+    ];
+    
     // This creates button
     //var buttonsandmore = leg.append('div').attr('class', 'buttons');
     var buttons = leg
-      .selectAll(".button").data(databut);
+      .selectAll(".refreshButton").data(databut);
     buttons.enter().append("input")
-      .attr("type", "submit").attr("class", "button")
+      .attr("type", "submit").attr("class", "refreshButton")
       .attr("value", function (d) { return d.name; })
       .on("click", function (d) { return d.fn(); });
     /*var table = leg.append('div').attr('class', 'tabcont')
@@ -420,9 +515,9 @@ h = dims.h;
   // update global values of parameters with new user-specified values
   targetMuX = vals[0]; targetMuY = vals[1]; targetSigmaX = Math.abs(vals[2]);
   targetSigmaY = Math.abs(vals[3]); targetRho = vals[4];
-
   // Note: need to do same here for proposal distribution (positions 5-9 of vals)!!!
-
+	proposalSigmaX = vals[5]; proposalSigmaY = vals[6]; proposalRho = vals[7];
+ 
   // regenerate data
   generate();
   // redraw svg
@@ -451,26 +546,26 @@ h = dims.h;
   
   
   // This function draws the contour plot + axes
-  function drawAug (obj)
+  function drawContour (obj)
   {
     // set the axis right
-    obj.y.domain(range(obj.data.aug.yy));
-    obj.x.domain(range(obj.data.aug.xx));
+    obj.y.domain(range(obj.data.contour.yy));
+    obj.x.domain(range(obj.data.contour.xx));
 
     // draw the target density
     var line = d3.svg.line()
       .x(function(d, i) { return obj.x(d.x); })
       .y(function(d, i) { return obj.y(d.y); });
 
-	// obj.data.aug.points is array where element is an array corresponding to each contour line
+	// obj.data.contour.points is array where element is an array corresponding to each contour line
     var lines = obj.plot.selectAll("path.contour")
-      .data(obj.data.aug.points);
+      .data(obj.data.contour.points);
      
     // This draws the path for the contour plot
     // Note that input is line, which array with each element corresponding to a curve on the contour plot
     lines.enter().append("path")
       .attr("class", "contour")
-      .attr("d", line);
+      .attr("d", line)
 
     // draw the point at which the Metropolis algorithm is at
     var poi = {x : obj.data.metropolis.x.val, y : obj.data.metropolis.y.val};
@@ -485,15 +580,32 @@ h = dims.h;
       .attr("r", 7)
       .each( function (d)
           { this._current = Object(); this._current.d = d;
-            this._current.name = 'aug'; this._current.obj = obj; return 0; });
+            this._current.name = 'contour'; this._current.obj = obj; return 0; });
 
-    // draw the path leading the point to its current position
-    var lead = obj.plot.selectAll("path.lead")
-      .data([obj.data.metropolis.steps]);
 
-    lead.enter().append("path")
-      .attr("class", "lead")
-      .attr("d", line);
+	// draw previous points (the entire array of sampled points, including current point)     
+	// create pairs of points
+	var prevPoi = makePoints(data.metropolis.x.vals,data.metropolis.y.vals)
+	// create circles of class "prev" and pass data
+    var prevPoints = obj.plot.selectAll("circle.prev")
+      .data(prevPoi);
+	// plot points
+    prevPoints.enter().append("circle")
+      .attr("class", "prev")
+      .attr("cx", function (d, i) { return obj.x(d.x); })
+      .attr("cy", function (d, i) { return obj.y(d.y); })
+      .attr("r", 4)
+
+
+	// Calculate acceptance rate of Metropolis algorithm (only if at least 1 iteration...)
+	if(data.metropolis.accepted.length!=0)
+	{
+		var sumAccept = data.metropolis.accepted.reduce(function(a, b) { return a + b });
+		var percAccept = sumAccept/data.metropolis.accepted.length;
+		var acceptRate = d3.selectAll(".acceptRate");
+		acceptRate.html("Acceptance Rate of Proposals: " + percAccept.toFixed(5)+"%");;
+	}
+
 
     // handle the transitions (this is necessary to reset plot when hit "Refresh")
     var tr = obj.svg.transition().duration(500);
@@ -501,108 +613,15 @@ h = dims.h;
     tr.select(".y.axis").call(obj.yAxis);
     tr.select(".x.axis").call(obj.xAxis);
     // Redraw current point in Metropolis algorithm + path leading to it
-    tr.select("circle").attrTween("cx", pointTweenX1)
-      .attrTween("cy", pointTweenY1);
-    tr.select("path.lead").delay(500).attr('d', line);
+    tr.select("circle").attr("cx", function(d){return obj.x(d.x);})
+      .attr("cy",function(d){return obj.y(d.y);});
     // Redraw contour plot
     tr.selectAll("path.contour").attr('d', function (d)
        { return line(d) } );
-    lead.exit().remove();
-
+    // remove all previous points from plot when hit "refresh"
+    prevPoints.exit().remove();
     return 0;
   }
-  
-    function moveAlongPoints (ref, axis, field)
-  {
-    // determine the length of the intermediate points (the number of chunks 
-    // we need to partition the time interval by is that minus one)
-    var len = ref.length, tlen = len - 1, dt = 1 / tlen;
-    return function (t)
-    {
-      var ind = d3.round(1 + (t - t % dt) / dt);
-      if (ind == ref.length) ind--;
-      var bound1 = dt * (ind - 1), bound2 = dt * ind;
-      var beginning = ref[ind - 1], end = ref[ind];
-      var changedTime = (t - bound1) / (bound2 - bound1);
-      var inter = d3.interpolate(axis(beginning[field]), axis(end[field]));
-      return inter(changedTime);
-    };
-    return 0;
-  }
-
-  function pointTweenY1 (d, i, a)
-  {
-    var axis = this._current.obj.y;
-    return augTweenY1 (this, axis, 'y', d, i, a);
-  }
-
-  function pointTweenX1 (d, i, a)
-  {
-    var axis = this._current.obj.x;
-    return augTweenY1 (this, axis, 'x', d, i, a);
-  }
-
-  // custom transition functions for the augmented space
-  function augTweenY1 (el, axis, field, d, i, a)
-  {
-    // get the steps object, and the current step
-    var start = el._current.d;
-    el._current.d = d;
-    // get reference y values (along which we will make the transition
-    var refAll = data.metropolis.steps; ref = [];
-    // put in the old value of the position as the starting points unless
-    // its already in there, or its the first iteration/step
-    var curStep = data.metropolis.currentStep;
-    if (curStep == 0 || curStep == nsteps) {
-      ref.push(start);
-    }
-    // it depends whether we are going left to right, or right to left
-    // if curStep is not 7, we only need to push the last two steps
-    var len = refAll.length;
-    for (var ii = (curStep == 7 || curStep == -1) ? 0 : d3.max([0, len - 2]);
-        ii < len; ii++) {
-      var oo = refAll[ii];
-      ref.push(oo);
-    }
-    // if we have rejected the proposal in the end, return to the initial 
-    // position
-    var metropolis = data.metropolis;
-    if (!data.metropolis.accepted) ref.push({x : metropolis.x.val, y : metropolis.y.val});
-    return moveAlongPoints(ref, axis, field);
-  }
-  
-  // a custom transition function for the points to follow curves
-  function pointTweenY (d, i, a)
-  {
-    // first determine what plot we're working with
-    var nam = this._current.name;
-    // get the steps object, and the current step
-    var obj = this._current.obj, axis = obj.y;
-    var start = this._current.d;
-    this._current.d = d;
-    // get reference y values (along which we will make the transition
-    var refAll;
-    if (nam == 'x') refAll = data.x.points;
-    if (nam == 'y') refAll = data.y.points;
-    var ref = [start];
-    // it depends whether we are going left to right, or right to left
-    if (d.x > start.x) {
-      for (var ii = 0; ii < refAll.length; ii++) {
-        var oo = refAll[ii];
-        if (oo.x < d.x && oo.x > start.x) ref.push(oo);
-      }
-    } else {
-      for (var ii = refAll.length; ii > 0; ii--) {
-        var oo = refAll[ii - 1];
-        if (oo.x > d.x && oo.x < start.x) ref.push(oo);
-      }
-    }
-    ref.push(d);
-    return moveAlongPoints(ref, axis, 'y');
-  }
-  
-  // end of new drawing fxn
-
 
  /*************************** INITIALIZE PLOT ******************************/
   legend();
