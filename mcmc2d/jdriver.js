@@ -3,7 +3,6 @@
 // Konstantin Kashin, reusing some of Sergyi's code
 // February 18, 2013
 
-
 (function() {
   var args = getURIargs();
 
@@ -14,6 +13,9 @@
 // Begin visualization function         
   function visual ()
 {
+  // this line is needed for MathJax to compile correctly
+  MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
+   
   // set global variables for target bivariate normal distribution
   var targetMuX = 0, targetMuY = 0, targetSigmaX=1, targetSigmaY=1, targetRho = 0.5,
   resolution = 250;
@@ -374,10 +376,6 @@
     // set the width of the container
     // add all fields, text inputs and the button
     
-    // Create field to display acceptance rate of proposals in legend
-    var acceptRate = leg.append('p').attr('class','acceptRate');
-	acceptRate.html("Acceptance Rate of Proposals: - %");
-	    
     // Create buttons to control iterations of Metropolis algorithm
  	// Define what name of button is and the fxn it calls when pressed
     var dataIterBut = [
@@ -394,6 +392,10 @@
       .attr("type", "submit").attr("class", "button")
       .attr("value", function (d) { return d.name; })
       .on("click", function (d) { return d.fn(); });
+      
+    // Create field to display acceptance rate of proposals in legend
+    var acceptRate = iterControls.append('h3').attr('class','acceptRate');
+	acceptRate.html("Acceptance Rate of Proposals: - %")
       
     // Create fields to input parameters for target and proposal distributions
     // Define input data for target distribution (this will be different input blanks) 
@@ -476,32 +478,13 @@
       {name : "Refresh", fn : getPars}
     ];
     
-    // This creates button
-    //var buttonsandmore = leg.append('div').attr('class', 'buttons');
-    var buttons = leg
-      .selectAll(".refreshButton").data(databut);
+    // This creates refresh button
+    var buttons = leg.append('div').attr('class','refresh')
+        .selectAll(".refreshButton").data(databut);
     buttons.enter().append("input")
       .attr("type", "submit").attr("class", "refreshButton")
       .attr("value", function (d) { return d.name; })
       .on("click", function (d) { return d.fn(); });
-    /*var table = leg.append('div').attr('class', 'tabcont')
-      .append("div").attr("class", "table")
-      .append("div").attr("class", "trow");
-    var tcell = table.selectAll(".tcell")
-      .data(data);
-    var cells = tcell.enter()
-      .append('div').attr('class', 'tcell');
-    cells.append("svg")
-      .style("display", "inline-block")
-      .attr("width", 50).attr("height", 20)
-      .append("line").attr("x1", 0).attr("x2", 50).attr("y1", 10)
-      .attr("y2", 10)
-      .attr("class", function (d) { return d.cls; })
-      .style("stroke-width", 5);
-    cells.append("p")
-      .style("display", "inline-block")
-      .html(function (d) { return d.name; });
-      */
     return 0;
   }
 
@@ -585,7 +568,7 @@
 
 	// draw previous points (the entire array of sampled points, including current point)     
 	// create pairs of points
-	var prevPoi = makePoints(data.metropolis.x.vals,data.metropolis.y.vals)
+	 var prevPoi = makePoints(data.metropolis.x.vals,data.metropolis.y.vals)
 	// create circles of class "prev" and pass data
     var prevPoints = obj.plot.selectAll("circle.prev")
       .data(prevPoi);
@@ -596,6 +579,29 @@
       .attr("cy", function (d, i) { return obj.y(d.y); })
       .attr("r", 4)
 
+
+    // create object that will hold lines connecting sampled points; plot lines
+    var connectLines = []
+    if(data.metropolis.currentIteration > 0){
+   		for(var ii=1; ii < prevPoi.length; ii++){
+    	connectLines.push({'x1':prevPoi[ii-1].x,'y1':prevPoi[ii-1].y,'x2':prevPoi[ii].x,'y2':prevPoi[ii].y})
+    	}
+    }
+
+    var lines = obj.plot.selectAll("line")
+    .data(connectLines);
+    
+  lines.enter().append("line")
+    .attr('class', 'connect')
+    .attr("x1", function (d, i) { return obj.x(d.x1); })
+    .attr("y1", function (d, i) { return obj.y(d.y1); })
+     .attr("x2", function (d, i) { return obj.x(d.x2); })
+    .attr("y2", function (d, i) { return obj.y(d.y2); })
+    .style("opacity", 0.85)
+    .style("stroke", "red")
+    .attr("stroke-dasharray", "5, 5");
+  
+    
 
 	// Calculate acceptance rate of Metropolis algorithm (only if at least 1 iteration...)
 	if(data.metropolis.accepted.length!=0)
@@ -618,8 +624,20 @@
     // Redraw contour plot
     tr.selectAll("path.contour").attr('d', function (d)
        { return line(d) } );
-    // remove all previous points from plot when hit "refresh"
+    
+    // transitions for lines
+    tr.selectAll("line.connect")
+    .attr("x1", function (d, i) { return obj.x(d.x1); })
+    .attr("y1", function (d, i) { return obj.y(d.y1); })
+     .attr("x2", function (d, i) { return obj.x(d.x2); })
+    .attr("y2", function (d, i) { return obj.y(d.y2); })
+    .style("opacity", 0.85)
+    .style("stroke", "red")
+    .attr("stroke-dasharray", "5, 5");
+    
+    // remove all previous points and lines connecting them from plot when hit "refresh"
     prevPoints.exit().remove();
+    lines.exit().remove();
     return 0;
   }
 
@@ -639,7 +657,7 @@
 } // end of visual() fxn
 
 // call visual function
-visual()
+visual();
 //addScriptToHead(args.jspath+"conrec.js",visual);
 
 return 0;
