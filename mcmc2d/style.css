@@ -2,11 +2,11 @@
   opacity : 0.3;
 }
 
-svg line {
+.ivcont svg line {
   stroke : #000000;
 }
 
-svg text {
+.ivcont svg text {
   font-family : "Times";
 }
 
@@ -43,7 +43,7 @@ svg text {
   text-align : center;
 }
 
-svg path {
+.ivcont svg path {
   fill: none;
   fill: #ddd;
   stroke-width : 5;
@@ -51,22 +51,22 @@ svg path {
   fill-opacity : 0.3;
 }
 
-svg path.domain {
+.ivcont svg path.domain {
   fill : none;
   stroke-width : 1;
   stroke: black;
   opacity : 0.3;
 }
 
-svg path.likelihood, svg line.likelihood {
+.ivcont svg path.likelihood, .ivcont svg line.likelihood {
   stroke : #666;
 }
 
-svg path.prior, svg line.prior {
+.ivcont svg path.prior, .ivcont svg line.prior {
   stroke : #f60;
 }
 
-svg path.posterior, svg line.posterior {
+.ivcont svg path.posterior, .ivcont svg line.posterior {
   stroke : #2c7bb6;
 }
 
@@ -104,12 +104,12 @@ svg path.posterior, svg line.posterior {
   display : inline-block;
 }
 
-.userviscontrols p, svg {
+.userviscontrols p, .ivcont svg {
   margin-left : 10px;
 }
 
 
-svg path.contour {
+.ivcont svg path.contour {
   fill: none;
   stroke : #666;
   stroke-width: 2;
@@ -121,7 +121,7 @@ svg path.contour {
   stroke-width: 3;
 }
 
-svg rect.histogram {
+.ivcont svg rect.histogram {
   fill: #2c7bb6;
   stroke : #2c7bb6;
   opacity : 0.7;
