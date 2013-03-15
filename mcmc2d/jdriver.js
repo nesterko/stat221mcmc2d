@@ -318,18 +318,20 @@
  	// defined by the user
  	var xRaw = jStat.normal.sample(0,1);
  	var xProposal = proposalSigmaX*xRaw + currentX; 
+ 	
  	var yRaw = jStat.normal.sample(0,1);
  	var yProposal = proposalSigmaY*(proposalRho*xRaw +Math.sqrt(1-Math.pow(proposalRho,2))*yRaw) + currentY
  	
  	
  	// calculate probability of acceptance as ratio of densities evaluated at proposal to original point
- 	var densOrig = bivariateNormal(currentX,currentY,targetMuX,targetMuY,targetSigmaX,targetSigmaY,proposalRho);
- 	var densProposal = bivariateNormal(xProposal,yProposal,targetMuX,targetMuY,targetSigmaX,targetSigmaY,proposalRho);
+ 	// the density in both numerator and denominator is the target density
+ 	var densOrig = bivariateNormal(currentX,currentY,targetMuX,targetMuY,targetSigmaX,targetSigmaY,targetRho);
+ 	var densProposal = bivariateNormal(xProposal,yProposal,targetMuX,targetMuY,targetSigmaX,targetSigmaY,targetRho);
  	
  	var probAccept = densProposal/densOrig;
  	
  	// bound acceptance probability at a max of 1
- 	var probAcceptBounded = Math.min(densProposal,densOrig)
+ 	var probAcceptBounded = Math.min(probAccept,1)
  
  	// select next step (accept or reject proposal)
  	unifIter = jStat.uniform.sample(0,1);
@@ -408,8 +410,6 @@
     
     // Define input data for proposal distribution (this will be different input blanks) 
     var inputdataProposal = [
-    //{lab : '\\\\( \\mu_X \\\\)', cls : 'proposalMuX', val : proposalMuX},
-    //{lab : '\\\\( \\mu_Y \\\\)', cls : 'proposalMuY', val : proposalMuY},
     {lab : '\\\\( \\sigma_X \\\\)', cls : 'proposalSigmaX', val : proposalSigmaX},
     {lab : '\\\\( \\sigma_Y \\\\)', cls : 'proposalSigmaY', val : proposalSigmaY},
     {lab : '\\\\( \\rho \\\\)', cls : 'proposalRho', val : proposalRho}];
@@ -495,10 +495,10 @@
   var boxes = d3.selectAll("#" + args.c + " .pars");
   var vals = boxes[0].map(
       function (el) {return +d3.select(el).property("value");});
-  // update global values of parameters with new user-specified values
+  // Update global values of parameters with new user-specified values for target distribution
   targetMuX = vals[0]; targetMuY = vals[1]; targetSigmaX = Math.abs(vals[2]);
   targetSigmaY = Math.abs(vals[3]); targetRho = vals[4];
-  // Note: need to do same here for proposal distribution (positions 5-9 of vals)!!!
+  // Update global values for proposal distribution (positions 5-9 of vals)
 	proposalSigmaX = vals[5]; proposalSigmaY = vals[6]; proposalRho = vals[7];
  
   // regenerate data
