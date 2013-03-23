@@ -37,14 +37,11 @@
   // of the plotting g elements within each svg
   var wv = w - 10, pw = wv - m.r - m.l, ph = h - m.t - m.b;
 
-  function init (container, w, h, title, xlab, ylab, data)
+  function init (container, w, h, xlab, ylab, data)
   {
     // initialize the SVG container (this will contain the contour plot)
     var con = d3.select("#" + container).insert("div", ":first-child")
       .attr('class', 'ivcont');
-
-    // add visualization title
-    con.append("h2").html(title);
 
     // initialize the SVG element
     var svg = con.append("svg")
@@ -363,7 +360,7 @@
   generate();
 
   // initialize data object & all data for plots
-  var contour = init(args.c,wv,h, "Metropolis Sampling from Bivariate Normal", "X", "Y", data)
+  var contour = init(args.c,wv,h, "X", "Y", data)
 
   
 /********************** DEFINE LEGEND ***********************/
@@ -485,6 +482,7 @@
       .attr("type", "submit").attr("class", "refreshButton")
       .attr("value", function (d) { return d.name; })
       .on("click", function (d) { return d.fn(); });
+
     return 0;
   }
 
@@ -656,9 +654,18 @@
   return 0;
 } // end of visual() fxn
 
-// call visual function
-//visual();
-addScriptToHead(args.jspath+"conrec.js",visual);
+// finally, run everything
+function visualPlusMathJax ()
+{
+  visual();
+  try {
+    MathJax.Hub.Queue(["Typeset", MathJax.Hub, args.c]);
+  } catch (e) {
+    console.log("Problem rendering math, make sure MathJax is running.");
+  }
+  return 0;
+}
+addScriptToHead(args.jspath + "conrec.js", visualPlusMathJax);
 
 return 0;
 })();
