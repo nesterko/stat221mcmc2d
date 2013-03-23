@@ -1,6 +1,6 @@
 // a sample d3 visualization for Stat 221
 // Metropolis Algorithm
-// Konstantin Kashin, reusing some of Sergyi's code
+// Konstantin Kashin, reusing some of Sergiy's code
 // February 18, 2013
 
 (function() {
@@ -657,8 +657,8 @@
 } // end of visual() fxn
 
 // call visual function
-visual();
-//addScriptToHead(args.jspath+"conrec.js",visual);
+//visual();
+addScriptToHead(args.jspath+"conrec.js",visual);
 
 return 0;
 })();
