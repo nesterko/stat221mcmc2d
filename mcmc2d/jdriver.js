@@ -609,7 +609,7 @@
 		var sumAccept = data.metropolis.accepted.reduce(function(a, b) { return a + b });
 		var percAccept = sumAccept/data.metropolis.accepted.length;
 		var acceptRate = d3.selectAll(".acceptRate");
-		acceptRate.html("Acceptance Rate of Proposals: " + percAccept.toFixed(5)+"%");;
+		acceptRate.html("Acceptance Rate of Proposals: " + d3.round(100 * percAccept, 2)+"%");;
 	}
 
 
